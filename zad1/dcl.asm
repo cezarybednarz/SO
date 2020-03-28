@@ -31,42 +31,33 @@ section .bss
 
 
 section .text
+
+read_L:
+
+read_R:
+
+read_T:
+
 _start:
-  lea     rbp, [rsp + 8]  ; adres args[0]
-loop:
-  mov     rsi, [rbp]      ; adres kolejnego argumentu
-  test    rsi, rsi
-  jz      exit            ; Napotkano zerowy wskaźnik, nie ma więcej argumentów.
-  cld                     ; Zwiększaj indeks przy przeszukiwaniu napisu.
-  xor     al, al          ; Szukaj zera.
-  mov     ecx, MAX_LINE   ; Ogranicz przeszukiwanie do MAX_LINE znaków.
-  mov     rdi, rsi        ; Ustaw adres, od którego rozpocząć szukanie.
-  repne \
-  scasb                   ; Szukaj bajtu o wartości zero.
-  mov     rdx, rdi
-  mov     eax, SYS_WRITE
-  mov     edi, STDOUT
-  sub     rdx, rsi        ; liczba bajtów do wypisania
+  mov     rax, [rsp]
+  cmp     rax, 5          ; sprawdz czy jest 5 argumentów
+  jne     exit_err        ; jeśli nie to return 1
+  
+  
+  
+  
+  
+exit:                    
+  mov     eax, SYS_EXIT
+  xor     edi, edi        ; kod powrotu 0
   syscall
-  mov     eax, SYS_WRITE
-  mov     edi, STDOUT
-  mov     rsi, new_line   ; Wypisz znak nowej linii.
-  mov     edx, 1          ; Wypisz jeden bajt.
-  syscall
-  add     rbp, 8          ; Przejdź do następnego argumentu.
-  jmp     loop
-  
-  
-  
+  ret
+
 exit_err:                   
   mov     eax, SYS_EXIT
   mov     edi, 1          ; kod powrotu 1
   syscall
   ret
-exit:                    
-  mov     eax, SYS_EXIT
-  xor     edi, edi        ; kod powrotu 0
-  syscall
 
   
   

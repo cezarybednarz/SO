@@ -1,6 +1,8 @@
+SYS_READ  equ 0
 SYS_WRITE equ 1
 SYS_EXIT  equ 60
 STDOUT    equ 1
+STDIN     equ 0
 MAX_LINE  equ 80
 FIRST     equ 49
 LAST      equ 90
@@ -23,6 +25,7 @@ section .bss
   Linv    resb N          ; odwrocona permutacja L
   Rinv    resb N          ; odwrocona permutacja R
   Tinv    resb N          ; odwrocona permutacja T
+  Buff    resb BUFFER     ; bufor na wczytywanie wejścia
   
 section .text
 ; sprawdza poprawność permutacji z %rdi i odwraca ją w %rsi
@@ -202,9 +205,31 @@ loopR_end:
   je      loopL_end       ; jesli nie to wyjdz z pierszej petli
   jmp     loopL           ; kolejny krok pętli po L
 loopL_end:
-    
-  mov     rdi, rsp        ; rdi to bedzie wskaznik na tablice
-  ; mov     r8,       ; nie moge o tym zapomniec zeby znowu przywolac r8 jako LR
+
+  mov     rdi, rsp        ; %rdi to bedzie wskaznik na tablice
+  
+  mov     r8, [r11+8]     ; w r8 przechowuję pozycje bebenka L
+  mov     r9, [r11+9]     ; w r9 przechowuję pozycję bebenka R
+
+; pętla wczytująca znaki blokowo po BUFFER znaków na raz
+input_loop:
+  mov     rdx, BUFFER     ; dlugosc buforu
+  mov     rcx, Buff       ; bufor
+  mov     rbx, STDIN      ; deskryptor stdin
+  mov     rax, SYS_READ   ; syscall read
+  syscall                 ; syscall: wczytaj znaki
+  
+  cmp     rax, 0          ; czy wczytał zero znaków
+  je      exit            ; wtedy wczytaliśmy całe wejście (return 0)
+  
+  
+  
+  
+  
+  
+  jmp     input_loop      ; koniec petli wejścia, wczytaj kolejne znaki
+  
+  
   
   
 exit:                    

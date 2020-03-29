@@ -11,6 +11,15 @@ NNN       equ 74088       ; 42^3
 
 BUFFER    equ 4096        ; dlugosc buforu do wczytywania / wypisywania
 
+; <===> DO USUNIĘCIA (DEBUG) <===>
+; section .text
+; extern printf
+; 
+; section .data
+; output_format: db "numer = "
+; end_of_format: db 0, 0 ; <~~ and change the first byte to a newline before output.
+; <==============================>
+
 
 global _start             ; Wykonanie programu zaczyna się od etykiety _start.
 
@@ -25,7 +34,6 @@ section .bss
   Tinv    resb N          ; odwrocona permutacja T
   
 section .text
-
 ; sprawdza poprawność permutacji z %rdi i odwraca ją w %rsi
 inverse: 
   xor     rax, rax        ; rax to zmienna długości słowa, którą zeruję
@@ -38,8 +46,8 @@ loop1:
   jg      exit_err        ; wyjdz jesli zly znak
   sub byte[rdi+rax], FIRST; przesun kod ascii do zera (żeby '1' mialo kod 0 itd.)
   
-  mov     cl,[rdi+rax]   ; wartosc permutacji (dokąd wskazuje)
-  mov     [rsi+rcx], al  ; stworz permutacje inv dla tego elementu
+  mov     cl,[rdi+rax]    ; wartosc permutacji (dokąd wskazuje)
+  mov     [rsi+rcx], al   ; stworz permutacje inv dla tego elementu
   
   inc     rax             ; zwieksz licznik liter
   jmp     loop1           ; powrót pętli loop1
@@ -65,9 +73,18 @@ loop2_end:
   jne     exit_err        ; jesli wiecej niz jedno zero, return 1
   ret                     ; wyjscie z funkcji inverse
   
+; funkcja modulo rejestru r8, która odejmuje 42 (w pętli) jesli r8 >= 42
+modulo:
+  cmp     r8, N          
+  jb      if_modulo          
+  dec     r8, N          
+  jmp     modulo
+if_modulo:
+  ret
   
   
-; początek programu
+  
+; <===> początek programu <===>
 _start:
   cmp qword[rsp], 5       ; sprawdz czy jest 5 argumentów
   jne     exit_err        ; jeśli nie to return 1
@@ -75,7 +92,7 @@ _start:
   mov     r9,  [rsp+16]   ; adres args[0] w r9
   mov     r10, [rsp+24]   ; adres args[1] w r10
   mov     r11, [rsp+32]   ; adres args[2] w r11
-  mov     r8,  [rsp+40]   ; adres args[3] w r8
+  mov     r8,  [rsp+40]   ; adres args[3] w r8, (później zostanie nadpisany)
   
   cmp byte[r8+2], 0       ; sprawdz ostatni argument nie jest za dlugi
   jne     exit_err        ; jesli za dlugi to return 1
@@ -124,6 +141,50 @@ loop3:
   jmp     loop3           ; powrót pętli loop2
 loop3_end:
   
+  
+; preprocessing polegający na sprawdzeniu wszystkich możliwych ustawien bębenka L, R 
+; i dla każdego możliwego znaku (i zapisanie tablicy szyfruj[42][42][42] na stosie 
+; poprzez zagnieżdżoną potrójnie pętlę 
+; wskaźnik na tablicę umieszczę w rejestrze %rdi
+
+  sub     rsp, NNN        ; przesun stos o 42^3 (miejsce na całą tablice
+  mov     rdi, rsp        ; rdi to bedzie wskaznik na tablice
+  xor     rsi, rsi        ; L*42^2 + R*42 + C (wyzeruj)
+
+; 3 zagnieżdżone pętle
+  xor     rax, rax        ; wyzeruj L
+loopL:
+  xor     rcx, rcx        ; wyzeruj R
+loopR:
+  xor     rdx, rdx        ; wyzeruj C
+loopC:
+; tutaj wnętrze pętli 
+  
+  mov     r8, rdx         ; nadpisuje poprzednio zajęte r8, żeby wykorzystać je do obliczenia permutacji (potem je odzyskam)
+  
+  add     r8, 
+  
+  
+  
+; koniec wnętrza pętli
+  add     rsi, 1          ; dodaj 1 do zsumowanego indeksu
+  add     rdx, 1          ; dodaj 1 do C
+  cmp     rdx, N          ; sprawdz czy C < 42
+  je      loopC_end       ; jesli nie to wyjdz z trzeciej petli
+  jmp     loopC           ; kolejny krok pętli po C
+loopC_end:
+  add     rcx, 1          ; dodaj 1 do R
+  cmp     rcx, N          ; sprawdz czy R < 42 
+  je      loopR_end       ; jesli nie to wyjdz z drugiej petli
+  jmp     loopR           ; kolejny krok pętli po R
+loopR_end:
+  add     rax, 1          ; dodaj 1 do L
+  cmp     rax, N          ; sprwadz czy L < 42
+  je      loopL_end       ; jesli nie to wyjdz z pierszej petli
+  jmp     loopL           ; kolejny krok pętli po L
+loopL_end:
+    
+
 
 exit:                    
   mov     eax, SYS_EXIT

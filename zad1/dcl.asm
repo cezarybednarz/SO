@@ -11,15 +11,6 @@ NNN       equ 74088       ; 42^3
 
 BUFFER    equ 4096        ; dlugosc buforu do wczytywania / wypisywania
 
-; <===> DO USUNIĘCIA (DEBUG) <===>
-; section .text
-; extern printf
-; 
-; section .data
-; output_format: db "numer = "
-; end_of_format: db 0, 0 ; <~~ and change the first byte to a newline before output.
-; <==============================>
-
 
 global _start             ; Wykonanie programu zaczyna się od etykiety _start.
 
@@ -77,7 +68,7 @@ loop2_end:
 modulo:
   cmp     r8, N          
   jb      if_modulo          
-  dec     r8, N          
+  sub     r8, N          
   jmp     modulo
 if_modulo:
   ret
@@ -89,10 +80,10 @@ _start:
   cmp qword[rsp], 5       ; sprawdz czy jest 5 argumentów
   jne     exit_err        ; jeśli nie to return 1
   
-  mov     r9,  [rsp+16]   ; adres args[0] w r9
-  mov     r10, [rsp+24]   ; adres args[1] w r10
-  mov     r11, [rsp+32]   ; adres args[2] w r11
-  mov     r8,  [rsp+40]   ; adres args[3] w r8, (później zostanie nadpisany)
+  mov     r9,  [rsp+16]   ; adres args[0] w r9  (L)
+  mov     r10, [rsp+24]   ; adres args[1] w r10 (R)
+  mov     r11, [rsp+32]   ; adres args[2] w r11 (T)
+  mov     r8,  [rsp+40]   ; adres args[3] w r8, (LR) [później zostanie nadpisany]
   
   cmp byte[r8+2], 0       ; sprawdz ostatni argument nie jest za dlugi
   jne     exit_err        ; jesli za dlugi to return 1
@@ -148,7 +139,6 @@ loop3_end:
 ; wskaźnik na tablicę umieszczę w rejestrze %rdi
 
   sub     rsp, NNN        ; przesun stos o 42^3 (miejsce na całą tablice
-  mov     rdi, rsp        ; rdi to bedzie wskaznik na tablice
   xor     rsi, rsi        ; L*42^2 + R*42 + C (wyzeruj)
 
 ; 3 zagnieżdżone pętle
@@ -161,9 +151,38 @@ loopC:
 ; tutaj wnętrze pętli 
   
   mov     r8, rdx         ; nadpisuje poprzednio zajęte r8, żeby wykorzystać je do obliczenia permutacji (potem je odzyskam)
+
+  add     r8, rcx         ; QR[c]
+  call    modulo          
+  mov     dil, byte [r10+r8]
+  movzx   r8, dil         ; R[c]
+  add     r8, 42          
+  sub     r8, rcx         ; Q-1R[c]
+
+  add     r8, rax         ; QL[c]
+  call    modulo          
+  mov     dil, byte [r9+r8]
+  movzx   r8, dil         ; L[c]
+  add     r8, 42
+  sub     r8, rax         ; Q-1L[c]
   
-  add     r8, 
+  call    modulo          
+  mov     dil, byte [r11+r8]
+  movzx   r8, dil         ; T[c]
   
+  add     r8, rax         ; QL[c]
+  call    modulo          
+  mov     dil, byte [Linv+r8]
+  movzx   r8, dil         ; Linv[c]
+  add     r8, 42
+  sub     r8, rax         ; Q-1L[c]
+  
+  add     r8, rcx         ; QR[c]
+  call    modulo          
+  mov     dil, byte [Rinv+r8]
+  movzx   r8, dil         ; Rinv[c]
+  add     r8, 42          
+  sub     r8, rcx         ; Q-1R[c]
   
   
 ; koniec wnętrza pętli
@@ -184,8 +203,10 @@ loopR_end:
   jmp     loopL           ; kolejny krok pętli po L
 loopL_end:
     
-
-
+  mov     rdi, rsp        ; rdi to bedzie wskaznik na tablice
+  ; mov     r8,       ; nie moge o tym zapomniec zeby znowu przywolac r8 jako LR
+  
+  
 exit:                    
   mov     eax, SYS_EXIT
   xor     edi, edi        ; kod powrotu 0

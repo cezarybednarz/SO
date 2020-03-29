@@ -9,6 +9,8 @@ N         equ 42          ; Liczba znaków, która można szyfrować
 NN        equ 1764        ; 42^2
 NNN       equ 74088       ; 42^3
 
+BUFFER    equ 4096        ; dlugosc buforu do wczytywania / wypisywania
+
 
 global _start             ; Wykonanie programu zaczyna się od etykiety _start.
 
@@ -21,16 +23,10 @@ section .bss
   Linv    resb N          ; odwrocona permutacja L
   Rinv    resb N          ; odwrocona permutacja R
   Tinv    resb N          ; odwrocona permutacja T
-  Lcheck  resb N         
-  Rcheck  resb N
-  Tcheck  resb N
-  
-  
-  
   
 section .text
 
-; sprawdza permutacje z %rdi i odwraca ją w %rsi
+; sprawdza poprawność permutacji z %rdi i odwraca ją w %rsi
 inverse: 
   xor     rax, rax        ; rax to zmienna długości słowa, którą zeruję
 loop1:   
@@ -41,19 +37,43 @@ loop1:
   cmp byte[rdi+rax], LAST ; porównaj z ostatnim znakiem alfabetu ('Z')
   jg      exit_err        ; wyjdz jesli zly znak
   sub byte[rdi+rax], FIRST; przesun kod ascii do zera (żeby '1' mialo kod 0 itd.)
-  inc     rax             ; zwieksz licznik liter
   
+  mov     cl,[rdi+rax]    ; wartosc permutacji (dokąd wskazuje)
+  mov     [rsi+rcx], rax  ; stworz permutacje inv dla tego elementu
+  
+  inc     rax             ; zwieksz licznik liter
   jmp     loop1           ; powrót pętli loop1
 inverse1:
   cmp     rax, N          ; sprawdz czy ma 42 litery
   jne     exit_err        ; jesli nie ma, return 1
   
+  xor     rax, rax        ; indeks w slowie (w petli)
+  xor     rcx, rcx        ; ilosc zer w slowie
   
-  ret
-
+loop2:   
+  cmp     rax, 42         ; sprawdz czy koniec slowa
+  je      inverse2        ; koniec petli (wyjdz)
+  
+  cmp byte[rdi+rax], 0    ; jesli zero
+  jne      greater         
+  inc     rcx             ; zwieksz rcx (licznik zer)
+greater:
+  
+  inc     rax             ; zwieksz index
+  jmp     loop2           ; powrót pętli loop2
+  
+inverse2:
+  
+  cmp     rcx, 1          ; jesli jedno zero permutacje da sie obrócić
+  jne     exit_err        ; jesli wiecej niz jedno zero, return 1
+  
+  ret                     ; wyjscie z funkcji inverse
+  
+  
+  
 ; początek programu
 _start:
-  cmp qword[rsp], 5          ; sprawdz czy jest 5 argumentów
+  cmp qword[rsp], 5       ; sprawdz czy jest 5 argumentów
   jne     exit_err        ; jeśli nie to return 1
   
   mov     r9,  [rsp+16]   ; adres args[0] w r9

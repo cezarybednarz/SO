@@ -21,7 +21,9 @@ section .bss
   Linv    resb N          ; odwrocona permutacja L
   Rinv    resb N          ; odwrocona permutacja R
   Tinv    resb N          ; odwrocona permutacja T
-  
+  Lcheck  resb N         
+  Rcheck  resb N
+  Tcheck  resb N
   
   
   
@@ -51,16 +53,14 @@ inverse1:
 
 ; początek programu
 _start:
-  mov     rax, [rsp]      ; adres argc
-  cmp     rax, 5          ; sprawdz czy jest 5 argumentów
+  cmp qword[rsp], 5          ; sprawdz czy jest 5 argumentów
   jne     exit_err        ; jeśli nie to return 1
   
-  lea     r9,  [rsp+16]   ; adres args[0] w r9
-  lea     r10, [rsp+24]   ; adres args[1] w r10
-  lea     r11, [rsp+32]   ; adres args[2] w r11
-  lea     r8,  [rsp+40]   ; adres args[3] w r8
+  mov     r9,  [rsp+16]   ; adres args[0] w r9
+  mov     r10, [rsp+24]   ; adres args[1] w r10
+  mov     r11, [rsp+32]   ; adres args[2] w r11
+  mov     r8,  [rsp+40]   ; adres args[3] w r8
   
-  ; KOLEJNA LINIJKA NIE DZIALA, MUSZE WSZYSTKO PRZETESTOWAC RANO
   cmp byte[r8+2], 0       ; sprawdz ostatni argument nie jest za dlugi
   jne     exit_err        ; jesli za dlugi to return 1
   
@@ -74,7 +74,7 @@ _start:
   jg      exit_err        ; jesli klucz wiekszy od 'Z' return 1
   
 ; sprawdzanie permutacji L
-  mov     rdi, [r9]       ; przekaz 1. argument do funkcji inverse
+  mov     rdi, r9         ; przekaz 1. argument do funkcji inverse
   mov     rsi, Linv       ; przekaz 2. argument do funkcji inverse
   call    inverse         ; sprawdzenie i odwrócenie permutacji L
 

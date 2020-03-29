@@ -31,42 +31,38 @@ inverse:
   xor     rax, rax        ; rax to zmienna długości słowa, którą zeruję
 loop1:   
   cmp byte[rdi+rax], 0    ; sprawdz czy koniec slowa
-  jz      inverse1        ; koniec petli (wyjdz)
+  jz      loop1_end       ; koniec petli (wyjdz)
   cmp byte[rdi+rax], FIRST; porównaj z pierwszym znakiem alfabetu ('1')
   jb      exit_err        ; wyjdz jesli zly znak
   cmp byte[rdi+rax], LAST ; porównaj z ostatnim znakiem alfabetu ('Z')
   jg      exit_err        ; wyjdz jesli zly znak
   sub byte[rdi+rax], FIRST; przesun kod ascii do zera (żeby '1' mialo kod 0 itd.)
   
-  mov     cl,[rdi+rax]    ; wartosc permutacji (dokąd wskazuje)
-  mov     [rsi+rcx], rax  ; stworz permutacje inv dla tego elementu
+  mov     cl,[rdi+rax]   ; wartosc permutacji (dokąd wskazuje)
+  mov     [rsi+rcx], al  ; stworz permutacje inv dla tego elementu
   
   inc     rax             ; zwieksz licznik liter
   jmp     loop1           ; powrót pętli loop1
-inverse1:
+  
+loop1_end:
   cmp     rax, N          ; sprawdz czy ma 42 litery
   jne     exit_err        ; jesli nie ma, return 1
   
   xor     rax, rax        ; indeks w slowie (w petli)
   xor     rcx, rcx        ; ilosc zer w slowie
-  
 loop2:   
   cmp     rax, 42         ; sprawdz czy koniec slowa
-  je      inverse2        ; koniec petli (wyjdz)
-  
+  je      loop2_end       ; koniec petli (wyjdz)
   cmp byte[rdi+rax], 0    ; jesli zero
-  jne      greater         
-  inc     rcx             ; zwieksz rcx (licznik zer)
+  jne     greater         
+  inc     rcx             ; zwieksz rcx (licznik zer) jesli znak jest zerem
 greater:
-  
   inc     rax             ; zwieksz index
   jmp     loop2           ; powrót pętli loop2
   
-inverse2:
-  
+loop2_end:
   cmp     rcx, 1          ; jesli jedno zero permutacje da sie obrócić
   jne     exit_err        ; jesli wiecej niz jedno zero, return 1
-  
   ret                     ; wyjscie z funkcji inverse
   
   
@@ -93,12 +89,40 @@ _start:
   cmp byte[r8+1], LAST    
   jg      exit_err        ; jesli klucz wiekszy od 'Z' return 1
   
+  sub byte[r8], FIRST     ; przesun bebenek L do zera
+  sub byte[r8+1], FIRST   ; przesun bebenek R do zera
+  
 ; sprawdzanie permutacji L
   mov     rdi, r9         ; przekaz 1. argument do funkcji inverse
   mov     rsi, Linv       ; przekaz 2. argument do funkcji inverse
   call    inverse         ; sprawdzenie i odwrócenie permutacji L
 
-; TODO dwie pozostałe permutacje
+; sprawdzanie permutacji R
+  mov     rdi, r10        ; przekaż 1. argument do funkcji inverse
+  mov     rsi, Rinv       ; przekaz 2. argument do funkcji inverse
+  call    inverse         ; sprawdzanie i odwrócenie permutacji R
+
+; sprawdzanie permutacji T
+  mov     rdi, r11        ; przekaż 1. argument do funkcji inverse
+  mov     rsi, Tinv       ; przekaż 2 argument do funkcji inverse
+  call    inverse         ; sprawdzenie i odwrócenie permutacji T (odwrócenie potrzebne do sprawdzenia cykli)
+
+; sprawdzenie czy T jest poprawną permutacją (tylko cykle dlugosci 2)
+  xor     rax, rax        ; indeks w slowie (w petli)
+loop3:   
+  cmp     rax, N          ; sprawdz czy koniec slowa
+  je      loop3_end       ; koniec petli (wyjdz)
+  
+  movzx   edx, byte [Tinv+rax] ; zapisywanie do edx elementu Tinv[i]
+  cmp     byte [r11+rax], dl ; sprawdzenie czy T[i] = Tinv[i] (jesli nie, to permutacja T nie ma cykli dl. 2)
+  jne     exit_err        ; jeśli nie są równe to return 1
+  
+  cmp     byte [r11+rax], al ; sprwadzenie czy T[i] != i
+  je      exit_err        ; jeśli równe to return 1
+  
+  inc     rax             ; zwieksz index
+  jmp     loop3           ; powrót pętli loop2
+loop3_end:
   
 
 exit:                    

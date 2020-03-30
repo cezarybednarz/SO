@@ -19,7 +19,7 @@ N         equ 42          ; Liczba znaków, która można szyfrować
 NN        equ 1764        ; 42^2
 NNN       equ 74088       ; 42^3
 
-BUFFER    equ 41        ; dlugosc buforu do wczytywania / wypisywania
+BUFFER    equ 1        ; dlugosc buforu do wczytywania / wypisywania
 
 
 global _start             ; Wykonanie programu zaczyna się od etykiety _start.
@@ -229,11 +229,11 @@ loopL_end:
   movzx   r14, byte[r12]
   
   mov     rax, NN
-  mul     r13b
+  mul     r13
   mov     r9, rax         ; w r9 przechowuję pozycję bebenka L
   
   mov     rax, N
-  mul     r14b
+  mul     r14
   mov     r8, rax         ; w r8 przechowuję pozycje bebenka R
   
 ; pętla wczytująca znaki blokowo po BUFFER znaków na raz

@@ -112,6 +112,9 @@ _start:
   sub byte[r8], FIRST     ; przesun bebenek L do zera
   sub byte[r8+1], FIRST   ; przesun bebenek R do zera
   
+  mov     r12, r8         ; zapisuję znaczki LR w r12
+  
+  
 ; sprawdzanie permutacji L
   mov     rdi, r9         ; przekaz 1. argument do funkcji inverse
   mov     rsi, Linv       ; przekaz 2. argument do funkcji inverse
@@ -168,14 +171,14 @@ loopC:
   call    modulo          
   mov     dil, byte [r10+r8]
   movzx   r8, dil         ; R[c]
-  add     r8, 42          
+  add     r8, N          
   sub     r8, rcx         ; Q-1R[c]
 
   add     r8, rax         ; QL[c]
   call    modulo          
   mov     dil, byte [r9+r8]
   movzx   r8, dil         ; L[c]
-  add     r8, 42
+  add     r8, N
   sub     r8, rax         ; Q-1L[c]
   
   call    modulo          
@@ -186,21 +189,19 @@ loopC:
   call    modulo          
   mov     dil, byte [Linv+r8]
   movzx   r8, dil         ; Linv[c]
-  add     r8, 42
+  add     r8, N
   sub     r8, rax         ; Q-1L[c]
   
   add     r8, rcx         ; QR[c]
   call    modulo          
   mov     dil, byte [Rinv+r8]
   movzx   r8, dil         ; Rinv[c]
-  add     r8, 42          
+  add     r8, N          
   sub     r8, rcx         ; Q-1R[c]
   
   call    modulo          ; wyrownanie
   
-  add     rsi, rsp
-  mov     sil, r8b        ; dopisanie do tablicy szyfruj[42][42][42] wyniku (można to napisać lepiej)
-  sub     rsi, rsp 
+  mov byte[rsp+rsi], r8b        ; dopisanie do tablicy szyfruj[42][42][42] wyniku (można to napisać lepiej)
 
   
 ; koniec wnętrza pętli
@@ -223,12 +224,27 @@ loopL_end:
 
   mov     r10, rsp        ; %r10 to bedzie wskaznik na tablice
   
+   ;debug
+;   add byte[r12], FIRST
+;   add byte[r12+1], FIRST
+;   mov     rax, SYS_WRITE  ; syscall write
+;   mov     rdi, STDOUT     ; deskryptor stdout
+;   mov     rsi, r12       ; przesuwam do początku buforu
+;   mov     rdx, 2        ; ilosc bajtow do wypisania
+;   syscall 
+;   jmp exit_err
+;   ;debug
+  
+  movzx   r13, byte[r12]
+  add     r12, 1
+  movzx   r14, byte[r12]
+  
   mov     rax, NN
-  mul qword[r11+8]
+  mul     r13b
   mov     r9, rax         ; w r9 przechowuję pozycję bebenka L
   
-  mov     rax, N     
-  mul qword[r11+9]
+  mov     rax, N
+  mul     r14b
   mov     r8, rax         ; w r8 przechowuję pozycje bebenka R
   
 ; pętla wczytująca znaki blokowo po BUFFER znaków na raz
@@ -287,9 +303,8 @@ cond3:
   add     r15, r14        ; dodaj C
   add     r15, r10        ; dodaj adres miejsca na stosie
   
-  add     rsi, r14
-  mov     sil, byte[r15]       ; szyfruj[L][R][C]
-  sub     rsi, r14
+  mov     r11, [r15]
+  mov     byte[rsi+r14], r11b       ; szyfruj[L][R][C]
   
   add byte[rsi+r14], FIRST      ; przesuń do normalnego znaku
   

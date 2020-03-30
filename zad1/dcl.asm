@@ -20,7 +20,7 @@ N         equ 42               ; Liczba znaków, która można szyfrować
 NN        equ 1764             ; 42^2
 NNN       equ 74088            ; 42^3
 
-BUFFER    equ 16384            ; dlugosc buforu do wczytywania / wypisywania
+BUFFER    equ 4096             ; dlugosc buforu do wczytywania / wypisywania
 
 global _start                  ; Wykonanie programu zaczyna się od etykiety _start.
 
@@ -36,6 +36,7 @@ section .bss
   Buff    resb BUFFER          ; bufor na wczytywanie wejścia
   
 section .text
+
 
 ; funkcja sprawdza poprawność permutacji z %rdi i odwraca ją w %rsi 
 ; i zapamiętuje, czy istnieje odwrotnosc elementu w %r13 (w tablica booli)
@@ -87,9 +88,20 @@ modulo:
   jmp     modulo
 if_modulo:
   ret
+
   
+; funkcja wykonująca 3 złożone permutacje (np. Q-1 R Q) dla argumentu C w %r8
+; %r14 adres do permutacji L/R/Linv/Rinv, %r15 to argument R/L do permutacji Q
+perm_apply:
+  add     r8, r15              ; Q[c]
+  call    modulo          
+  mov     dil, byte[r14+r8]
+  movzx   r8, dil              ; Perm[c]
+  add     r8, N          
+  sub     r8, r15              ; Q-1[c]
+  ret                          ; koniec funkcji perm_apply
   
-; main, początek programu
+; <=========> main <==========>
 _start:
   
   cmp     qword[rsp], 5        ; sprawdz czy jest 5 argumentów
@@ -168,48 +180,34 @@ loopL:
 loopR:
   xor     rdx, rdx             ; wyzeruj C
 loopC:
-; tutaj wnętrze pętli 
-  
+
+; początek wnętrza pętli, aplikowanie wsztystkich złożen z treści zadania
   mov     r8, rdx              ; %r8: zmienna pomocnicza do liczenia złożenia permutacji
-
-  add     r8, rcx              ; QR[c]
-  call    modulo          
-  mov     dil, byte[r10+r8]
-  movzx   r8, dil              ; R[c]
-  add     r8, N          
-  sub     r8, rcx              ; Q-1R[c]
-
-  add     r8, rax              ; QL[c]
-  call    modulo          
-  mov     dil, byte[r9+r8]
-  movzx   r8, dil              ; L[c]
-  add     r8, N
-  sub     r8, rax              ; Q-1L[c]
+  
+  mov     r14, r10             
+  mov     r15, rcx
+  call    perm_apply           ; Q R Q-1
+  
+  mov     r14, r9
+  mov     r15, rax
+  call    perm_apply           ; Q L Q-1
   
   call    modulo          
   mov     dil, byte[r11+r8]
-  movzx   r8, dil              ; T[c]
+  movzx   r8, dil              ; T
   
-  add     r8, rax              ; QL[c]
-  call    modulo          
-  mov     dil, byte[Linv+r8]
-  movzx   r8, dil              ; Linv[c]
-  add     r8, N
-  sub     r8, rax              ; Q-1L[c]
+  mov     r14, Linv            ; nie trzeba zmieniac r15 (przypisalismy w poprz. linijce)
+  call    perm_apply           ; Q Linv Q-1
   
-  add     r8, rcx              ; QR[c]
-  call    modulo          
-  mov     dil, byte[Rinv+r8]
-  movzx   r8, dil              ; Rinv[c]
-  add     r8, N          
-  sub     r8, rcx              ; Q-1R[c]
+  mov     r14, Rinv
+  mov     r15, rcx
+  call    perm_apply           ; Q Rinv Q-1
   
   call    modulo               ; wyrownanie
   
-  mov     byte[rsp+rsi], r8b   ; dopisanie do tablicy szyfruj[42][42][42] wyniku
-
-  
+  mov     byte[rsp+rsi], r8b   ; dopisanie do tablicy szyfruj[42][42][42] wyniku  
 ; koniec wnętrza pętli
+
   add     rsi, 1               ; dodaj 1 do zsumowanego indeksu
   add     rdx, 1               ; dodaj 1 do C
   cmp     rdx, N               ; sprawdz czy C < 42
@@ -231,16 +229,20 @@ loopR_end:
 loopL_end:
   mov     r10, rsp             ; %r10 to bedzie wskaznik na tablice
   
-  movzx   r13, byte[r12]
-  add     r12, 1
-  movzx   r14, byte[r12]
-  
-  mov     rax, NN
-  mul     r13
+  movzx   r13, byte[r12]       ; do %r13 przenoszę początkową pozycję bebenka L
+  add     r12, 1               ; pozycja R jest znak dalej w kluczu
+  movzx   r14, byte[r12]       ; do %r14 przenoszę początkową pozycję bebenka R  
+
+; pozycja L będzie przemnożona przez 42^2 żeby potem łatwiej odwoływac się do tablicy
+; szyfruj[L][R][C], czyli *(szyfruj + L*42^2 + R*42 + C)
+  mov     rax, NN             
+  mul     r13                  ; przemnażam przez NN czyli 42^2
   mov     r9, rax              ; w r9 przechowuję pozycję bebenka L
-  
+
+; pozycja R będzie przemnożona przez 42 żeby potem łatwiej odwoływac się do tablicy
+; szyfruj[L][R][C], czyli *(szyfruj + L*42^2 + R*42 + C)
   mov     rax, N
-  mul     r14
+  mul     r14                  ; przemnażam przez N czyli 42
   mov     r8, rax              ; w r8 przechowuję pozycje bebenka R
   
 ; pętla wczytująca znaki blokowo po BUFFER znaków na raz
@@ -274,18 +276,18 @@ char_loop:
   
 cond1:
   cmp     r8, LSIGN_T          ; sprawdz czy bebenek R jest rowny L
-  jne     c1
-  add     r9, NN               ; i przesuń bebenek L
+  je      c_add
   
-c1:
   cmp     r8, RSIGN_T          ; sprawdz czy bebenek R jest rowny R
-  jne     c2         
-  add     r9, NN               ; i przesuń bebenek L
+  je      c_add
   
-c2:
   cmp     r8, TSIGN_T          ; sprawdz czy bebenek R jest rowny T
-  jne     cond2
-  add     r9, NN               ; i przesuń bebenek L
+  je      c_add
+
+  jmp     cond2
+  
+c_add:
+  add     r9, NN
   
 cond2:
   cmp     r9, NNN              ; sprawdz bebenek L jest równy 42^3
@@ -293,9 +295,9 @@ cond2:
   mov     r9, 0                ; wyzeruj jeśli jest
   
 cond3:
-  mov     r15, r9              ; dodaj L
-  add     r15, r8              ; dodaj R
-  movzx   r11, byte[rsi+r14]   ; wez znaczek
+  mov     r15, r9              ; dodaj L * 42^2
+  add     r15, r8              ; dodaj R * 42
+  movzx   r11, byte[rsi+r14]   ; wez znaczek z buforu (czyli C)
   add     r15, r11             ; dodaj C
   add     r15, r10             ; dodaj adres miejsca na stosie
   
@@ -315,9 +317,9 @@ char_loop_end:
   mov     rdi, STDOUT          ; deskryptor stdout
   mov     rsi, Buff            ; przesuwam do początku buforu
   mov     rdx, r12             ; ilosc bajtow do wypisania
-  syscall                      ; syscall: wypisz znaki
+  syscall                      ; syscall: wypisz znaki (blokowo)
   
-  jmp     input_loop
+  jmp     input_loop           ; wczytaj kolejną porcję znaków
 
   
 exit:                    

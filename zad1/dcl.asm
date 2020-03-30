@@ -7,9 +7,9 @@ MAX_LINE  equ 80
 FIRST     equ 49
 LAST      equ 90
 
-LSIGN     equ 27
-RSIGN     equ 33
-TSIGN     equ 35
+LSIGN     equ 27   ; kod ascii L przesunięty do 0 
+RSIGN     equ 33   ; kod ascii R przesunięty do 0
+TSIGN     equ 35   ; kod ascii T przesunięty do 0
 
 LSIGN_T   equ 1134 ; kod ascii L przesuniety do 0 i pomnozony przez 42
 RSIGN_T   equ 1386 ; kod ascii R przesuniety do 0 i pomnozony przez 42
@@ -19,7 +19,7 @@ N         equ 42          ; Liczba znaków, która można szyfrować
 NN        equ 1764        ; 42^2
 NNN       equ 74088       ; 42^3
 
-BUFFER    equ 4096        ; dlugosc buforu do wczytywania / wypisywania
+BUFFER    equ 4        ; dlugosc buforu do wczytywania / wypisywania
 
 
 global _start             ; Wykonanie programu zaczyna się od etykiety _start.
@@ -151,8 +151,9 @@ loop3_end:
 ; wskaźnik na tablicę umieszczę w rejestrze %rdi
 
   sub     rsp, NNN        ; przesun stos o 42^3 (miejsce na całą tablice
+  sub     rsp, 8          ; align do liczby podzielnej przez 16 (mozna wyrzucic potem)
   xor     rsi, rsi        ; L*42^2 + R*42 + C (wyzeruj)
-
+  
 ; 3 zagnieżdżone pętle
   xor     rax, rax        ; wyzeruj L
 loopL:
@@ -196,9 +197,11 @@ loopC:
   add     r8, 42          
   sub     r8, rcx         ; Q-1R[c]
   
-  add     rsp, rsi
-  mov     rsp, r8         ; dopisanie do tablicy szyfruj[42][42][42] wyniku (można to napisać lepiej)
-  sub     rsp, rsi 
+  call    modulo          ; wyrownanie
+  
+  add     rsi, rsp
+  mov     sil, r8b        ; dopisanie do tablicy szyfruj[42][42][42] wyniku (można to napisać lepiej)
+  sub     rsi, rsp 
 
   
 ; koniec wnętrza pętli
@@ -223,7 +226,7 @@ loopL_end:
   
   mov     r9, [r11+8]     ; w r9 przechowuję pozycję bebenka L
   mov     r8, [r11+9]     ; w r8 przechowuję pozycje bebenka R
-
+  
 ; pętla wczytująca znaki blokowo po BUFFER znaków na raz
 input_loop:
   mov     rax, SYS_READ   ; syscall read
@@ -231,6 +234,9 @@ input_loop:
   mov     rsi, Buff       ; bufor
   mov     rdx, BUFFER     ; dlugosc buforu
   syscall                 ; syscall: wczytaj znaki
+  
+  mov     r12, rax        ; zapisuje w %r12 dlugosc slowa
+  xor     r14, r14        ; %r14 bedzie iterowalo az do dlugosci slowa
   
   cmp     rax, 0          ; czy wczytał zero znaków
   je      exit            ; wtedy wczytaliśmy całe wejście (return 0)
@@ -270,10 +276,12 @@ cond2:
   mov     r9, 0           ; wyzeruj jeśli jest
   
 cond3:
-  
-  mov     r15, [r9+r8]         ; szyfruj[L][R][0]
-  mov     r14b, byte [r15+rsi] ; szyfruj[L][R][C]
-  mov     sil, r14b
+
+  xor     r15, r15       
+  add     r15, r9
+  add     r15, r8
+  add     r15, r14
+  mov     sil, r15b       ; szyfruj[L][R][C]
   
   add     sil, FIRST      ; przesuń do normalnego znaku
   
@@ -281,16 +289,17 @@ cond3:
   cmp     rax, 0          ; czy prerobilem wszystkie znaki
   je      char_loop_end   ; jesli tak to wczytaj kolejną porcję
   inc     sil             ; wczytaj kolejny znak
+  inc     r14             ; zwieksz iterator dlugosci slowa
   jmp     char_loop       ; przetwórz kolejny znak (przejdz na poczatek petli)
   
 char_loop_end:
   mov     rax, SYS_WRITE  ; syscall write
   mov     rdi, STDOUT     ; deskryptor stdout
-; bufor ze znakami do wypisania juz jest gotowy w rsi
-  mov     rdx, 1          ; ilosc bajtow do wypisania
+  mov     rsi, Buff       ; przesuwam do początku buforu
+  mov     rdx, r12        ; ilosc bajtow do wypisania
   syscall                 ; syscall: wypisz znaki
   
-  jmp input_loop
+  jmp     input_loop
   
   
 exit:                    

@@ -224,17 +224,6 @@ loopL_end:
 
   mov     r10, rsp        ; %r10 to bedzie wskaznik na tablice
   
-   ;debug
-;   add byte[r12], FIRST
-;   add byte[r12+1], FIRST
-;   mov     rax, SYS_WRITE  ; syscall write
-;   mov     rdi, STDOUT     ; deskryptor stdout
-;   mov     rsi, r12       ; przesuwam do początku buforu
-;   mov     rdx, 2        ; ilosc bajtow do wypisania
-;   syscall 
-;   jmp exit_err
-;   ;debug
-  
   movzx   r13, byte[r12]
   add     r12, 1
   movzx   r14, byte[r12]

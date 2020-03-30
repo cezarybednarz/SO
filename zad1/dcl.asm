@@ -230,8 +230,7 @@ loopL_end:
   mov     r10, rsp             ; %r10 to bedzie wskaznik na tablice
   
   movzx   r13, byte[r12]       ; do %r13 przenoszę początkową pozycję bebenka L
-  add     r12, 1               ; pozycja R jest znak dalej w kluczu
-  movzx   r14, byte[r12]       ; do %r14 przenoszę początkową pozycję bebenka R  
+  movzx   r14, byte[r12+1]     ; do %r14 przenoszę początkową pozycję bebenka R  
 
 ; pozycja L będzie przemnożona przez 42^2 żeby potem łatwiej odwoływac się do tablicy
 ; szyfruj[L][R][C], czyli *(szyfruj + L*42^2 + R*42 + C)
@@ -269,10 +268,10 @@ char_loop:
   
   sub     byte[rsi+r14], FIRST ; przesuń przetwarzany znak do zera
   
-  add     r8, N                ; przesun bebenek R
+  add     r8, N                ; przesun R o 1 (czyli 42, bo jest indeksem w tablicy)
   cmp     r8, NN               ; sprawdz czy bebenek R jest równy 42
   jne     cond1
-  mov     r8, 0                ; wyzeruj jeśli jest
+  xor     r8, r8               ; wyzeruj jeśli jest
   
 cond1:
   cmp     r8, LSIGN_T          ; sprawdz czy bebenek R jest rowny L
@@ -287,12 +286,12 @@ cond1:
   jmp     cond2
   
 c_add:
-  add     r9, NN
+  add     r9, NN               ; przesun L o 1 (czyli 42^2, bo jest indeksem w tablicy)
   
 cond2:
   cmp     r9, NNN              ; sprawdz bebenek L jest równy 42^3
   jne     cond3
-  mov     r9, 0                ; wyzeruj jeśli jest
+  xor     r9, r9               ; wyzeruj jeśli jest
   
 cond3:
   mov     r15, r9              ; dodaj L * 42^2
@@ -306,10 +305,9 @@ cond3:
   
   add     byte[rsi+r14], FIRST ; przesuń do normalnego znaku
   
-  dec     rax                  ; zmniejsz liczbe przerobionych znaków
-  cmp     rax, 0               ; czy prerobilem wszystkie znaki
-  je      char_loop_end        ; jesli tak to wczytaj kolejną porcję
   inc     r14                  ; zwieksz iterator dlugosci slowa
+  cmp     r14, rax             ; czy prerobilem wszystkie znaki
+  je      char_loop_end        ; jesli tak to wczytaj kolejną porcję
   jmp     char_loop            ; przetwórz kolejny znak (przejdz na poczatek petli)
   
 char_loop_end:
@@ -332,17 +330,3 @@ exit_err:
   mov     eax, SYS_EXIT
   mov     edi, 1               ; kod powrotu 1
   syscall
-  ret
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  

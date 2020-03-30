@@ -19,7 +19,7 @@ N         equ 42          ; Liczba znaków, która można szyfrować
 NN        equ 1764        ; 42^2
 NNN       equ 74088       ; 42^3
 
-BUFFER    equ 1        ; dlugosc buforu do wczytywania / wypisywania
+BUFFER    equ 4096        ; dlugosc buforu do wczytywania / wypisywania
 
 
 global _start             ; Wykonanie programu zaczyna się od etykiety _start.
@@ -33,6 +33,9 @@ section .bss
   Linv    resb N          ; odwrocona permutacja L
   Rinv    resb N          ; odwrocona permutacja R
   Tinv    resb N          ; odwrocona permutacja T
+  Lbool   resb N          ; czy permutacja L ma odwrotnosc dla danego argumentu
+  Rbool   resb N          ; czy permutacja R ma odwrotnosc dla danego argumentu
+  Tbool   resb N          ; czy permutacja T ma odwrotnosc dla danego argumentu
   Buff    resb BUFFER     ; bufor na wczytywanie wejścia
   
 section .text

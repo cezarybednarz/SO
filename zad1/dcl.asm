@@ -19,7 +19,7 @@ N         equ 42          ; Liczba znaków, która można szyfrować
 NN        equ 1764        ; 42^2
 NNN       equ 74088       ; 42^3
 
-BUFFER    equ 4        ; dlugosc buforu do wczytywania / wypisywania
+BUFFER    equ 41        ; dlugosc buforu do wczytywania / wypisywania
 
 
 global _start             ; Wykonanie programu zaczyna się od etykiety _start.
@@ -279,19 +279,19 @@ char_loop:
   
 cond1:
   cmp     r8, LSIGN_T     ; sprawdz czy bebenek R jest rowny L
-  jne     cond2
+  jne     c1
   add     r9, NN          ; i przesuń bebenek L
-  
+c1:
   cmp     r8, RSIGN_T     ; sprawdz czy bebenek R jest rowny R
-  jne     cond2         
+  jne     c2         
   add     r9, NN          ; i przesuń bebenek L
-  
+c2:
   cmp     r8, TSIGN_T     ; sprawdz czy bebenek R jest rowny T
   jne     cond2
   add     r9, NN          ; i przesuń bebenek L
   
 cond2:
-  cmp     r9, NNN         ; sprawdz bebenek L jest równy 42
+  cmp     r9, NNN         ; sprawdz bebenek L jest równy 42^3
   jne     cond3
   mov     r9, 0           ; wyzeruj jeśli jest
   
@@ -300,7 +300,8 @@ cond3:
   xor     r15, r15        ; wyzeruj r15
   add     r15, r9         ; dodaj L
   add     r15, r8         ; dodaj R
-  add     r15, r14        ; dodaj C
+  movzx   r11, byte[rsi+r14]  ; wez znaczek
+  add     r15, r11        ; dodaj C
   add     r15, r10        ; dodaj adres miejsca na stosie
   
   mov     r11, [r15]

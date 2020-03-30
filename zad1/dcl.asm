@@ -144,7 +144,6 @@ loop3:
   jmp     loop3           ; powrót pętli loop2
 loop3_end:
   
-  
 ; preprocessing polegający na sprawdzeniu wszystkich możliwych ustawien bębenka L, R 
 ; i dla każdego możliwego znaku (i zapisanie tablicy szyfruj[42][42][42] na stosie 
 ; poprzez zagnieżdżoną potrójnie pętlę 
@@ -224,8 +223,13 @@ loopL_end:
 
   mov     r10, rsp        ; %r10 to bedzie wskaznik na tablice
   
-  mov     r9, [r11+8]     ; w r9 przechowuję pozycję bebenka L
-  mov     r8, [r11+9]     ; w r8 przechowuję pozycje bebenka R
+  mov     rax, NN
+  mul qword[r11+8]
+  mov     r9, rax         ; w r9 przechowuję pozycję bebenka L
+  
+  mov     rax, N     
+  mul qword[r11+9]
+  mov     r8, rax         ; w r8 przechowuję pozycje bebenka R
   
 ; pętla wczytująca znaki blokowo po BUFFER znaków na raz
 input_loop:
@@ -243,13 +247,13 @@ input_loop:
 
 ; pętla wczytująca kolejne znaki z bufora (w rax liczba pozostałych znaków)
 char_loop:
-  cmp byte[rsi], FIRST    ; jesli mniejsze od '1'
+  cmp byte[rsi+r14], FIRST    ; jesli mniejsze od '1'
   jb      exit_err        ; return 1
   
-  cmp byte[rsi], LAST     ; jesli wieksze od 'Z'
+  cmp byte[rsi+r14], LAST     ; jesli wieksze od 'Z'
   jg      exit_err        ; return 1
   
-  sub     sil, FIRST      ; przesuń przetwarzany znak do zera
+  sub byte[rsi+r14], FIRST      ; przesuń przetwarzany znak do zera
   
   add     r8, N           ; przesun bebenek R
   cmp     r8, NN          ; sprawdz czy bebenek R jest równy 42
@@ -277,18 +281,21 @@ cond2:
   
 cond3:
 
-  xor     r15, r15       
-  add     r15, r9
-  add     r15, r8
-  add     r15, r14
-  mov     sil, r15b       ; szyfruj[L][R][C]
+  xor     r15, r15        ; wyzeruj r15
+  add     r15, r9         ; dodaj L
+  add     r15, r8         ; dodaj R
+  add     r15, r14        ; dodaj C
+  add     r15, r10        ; dodaj adres miejsca na stosie
   
-  add     sil, FIRST      ; przesuń do normalnego znaku
+  add     rsi, r14
+  mov     sil, byte[r15]       ; szyfruj[L][R][C]
+  sub     rsi, r14
+  
+  add byte[rsi+r14], FIRST      ; przesuń do normalnego znaku
   
   dec     rax             ; zmniejsz liczbe przerobionych znaków
   cmp     rax, 0          ; czy prerobilem wszystkie znaki
   je      char_loop_end   ; jesli tak to wczytaj kolejną porcję
-  inc     sil             ; wczytaj kolejny znak
   inc     r14             ; zwieksz iterator dlugosci slowa
   jmp     char_loop       ; przetwórz kolejny znak (przejdz na poczatek petli)
   

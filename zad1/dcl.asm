@@ -33,13 +33,16 @@ section .bss
   Linv    resb N          ; odwrocona permutacja L
   Rinv    resb N          ; odwrocona permutacja R
   Tinv    resb N          ; odwrocona permutacja T
+  
   Lbool   resb N          ; czy permutacja L ma odwrotnosc dla danego argumentu
   Rbool   resb N          ; czy permutacja R ma odwrotnosc dla danego argumentu
   Tbool   resb N          ; czy permutacja T ma odwrotnosc dla danego argumentu
+  
   Buff    resb BUFFER     ; bufor na wczytywanie wejścia
   
 section .text
-; sprawdza poprawność permutacji z %rdi i odwraca ją w %rsi
+; sprawdza poprawność permutacji z %rdi i odwraca ją w %rsi 
+; i zapamiętuję, czy istnieje odwrotnosc elementu w %r13 (tablica booli)
 inverse: 
   xor     rax, rax        ; rax to zmienna długości słowa, którą zeruję
 loop1:   
@@ -53,6 +56,7 @@ loop1:
   
   mov     cl,[rdi+rax]    ; wartosc permutacji (dokąd wskazuje)
   mov     [rsi+rcx], al   ; stworz permutacje inv dla tego elementu
+  mov byte[r13+rcx], 1    ; zapisz, ze policzylem juz odwrotnosc w tym elemencie
   
   inc     rax             ; zwieksz licznik liter
   jmp     loop1           ; powrót pętli loop1
@@ -66,7 +70,7 @@ loop1_end:
 loop2:   
   cmp     rax, 42         ; sprawdz czy koniec slowa
   je      loop2_end       ; koniec petli (wyjdz)
-  cmp byte[rdi+rax], 0    ; jesli zero
+  cmp byte[r13+rax], 0    ; jesli zero
   jne     greater         
   inc     rcx             ; zwieksz rcx (licznik zer) jesli znak jest zerem
 greater:
@@ -74,8 +78,8 @@ greater:
   jmp     loop2           ; powrót pętli loop2
   
 loop2_end:
-  cmp     rcx, 1          ; jesli jedno zero permutacje da sie obrócić
-  jne     exit_err        ; jesli wiecej niz jedno zero, return 1
+  cmp     rcx, 0          ; jesli jesli nie ma zadnych zer, to permutację da sie odwrócić
+  jne     exit_err        ; jesli jest jakies zero - return 1
   ret                     ; wyjscie z funkcji inverse
   
 ; funkcja modulo rejestru r8, która odejmuje 42 (w pętli) jesli r8 >= 42
@@ -121,16 +125,19 @@ _start:
 ; sprawdzanie permutacji L
   mov     rdi, r9         ; przekaz 1. argument do funkcji inverse
   mov     rsi, Linv       ; przekaz 2. argument do funkcji inverse
+  mov     r13, Lbool      ; przekaz 3. arguemnt do funkcji inverse
   call    inverse         ; sprawdzenie i odwrócenie permutacji L
 
 ; sprawdzanie permutacji R
   mov     rdi, r10        ; przekaż 1. argument do funkcji inverse
   mov     rsi, Rinv       ; przekaz 2. argument do funkcji inverse
+  mov     r13, Rbool      ; przekaż 3. argument do funkcji inverse
   call    inverse         ; sprawdzanie i odwrócenie permutacji R
 
 ; sprawdzanie permutacji T
   mov     rdi, r11        ; przekaż 1. argument do funkcji inverse
-  mov     rsi, Tinv       ; przekaż 2 argument do funkcji inverse
+  mov     rsi, Tinv       ; przekaż 2. argument do funkcji inverse
+  mov     r13, Tbool      ; przekaż 3. argument do funkcji inverse
   call    inverse         ; sprawdzenie i odwrócenie permutacji T (odwrócenie potrzebne do sprawdzenia cykli)
 
 ; sprawdzenie czy T jest poprawną permutacją (tylko cykle dlugosci 2)

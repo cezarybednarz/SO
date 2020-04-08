@@ -1,3 +1,7 @@
+
+; Autor: Cezary Bednarz, numer indeksu: 406099
+; Zadanie: zadanie 1 z Systemów Operacyjnych (szyfrowanie DSL)
+
 SYS_READ  equ 0
 SYS_WRITE equ 1
 SYS_EXIT  equ 60

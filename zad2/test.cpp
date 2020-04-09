@@ -8,6 +8,6 @@ extern "C"
 
 int main() {
     
-    std::cout << pix(3, 5, 0) << "\n";
+    std::cout << pix(2, 100000, 1000) << "\n";
     
 }

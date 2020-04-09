@@ -116,7 +116,7 @@ first_loop_end:
   mov     rdi, 1
   mov     rsi, 16
   call    div_fraction         ; liczę 1/16
-  mov     r13, rax             ; w r13 zapisuję 1/16
+  mov     r13, rax             ; w r13 zapisuję 1/16 (potem bede mnozyl)
   
   mov     r9, r11              ; w r11 jest n
   inc     r9                   ; w r9 to n+1, r9 bedzie indeksem k w pętli
@@ -127,15 +127,27 @@ second_loop:
   shl     r14, 3
   add     r14, r10             ; w r14 jest 8*k+j
   
-  div     r14                  ; 
+  xor     rdx, rdx             ; wyzeruj wyższe bity przed dzieleniem
+  div     r14                  ; (1/16) / (8*k + j), inaczej curPart = numerator / denominator;
   
-  mov     r13, rax
+  cmp     rax, 0               ; if(curPart == 0) break;
+  je      second_loop_end      ; jesli jest zero (czyli nic nie zmieni), to wyjdz
   
-  cmp     rax, 0
-  je      second_loop_end
+  add     r12, rax             ; dodaj ulamek do sumy (res += curPart)
   
+  mov     rdi, 1
+  mov     rsi, 16
+  call    div_fraction         ; liczę 1/16
   
+  mov     r15, rax             ; mianownik fracMul (getDivFraction(1, 16))
+  mov     rax, r13             ; licznik fracMul   (cur16Pow)
+  xor     rdx, rdx             ; w rdx bedzie wynik mnozenia (chcemy gorne 64 bity liczby 128 bitowej)
+  mul     r15                  ; cur16Pow * getDivFraction(1, 16) 
   
+  mov     r13, rdx             ; cur16Pow = fracMul(cur16Pow, getDivFraction(1, 16)); 
+  
+  inc     r9                   ; k++
+  jmp     second_loop          
 second_loop_end:
   
   mov     rax, r12

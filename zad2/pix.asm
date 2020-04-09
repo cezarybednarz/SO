@@ -75,7 +75,7 @@ loop_power_end:
 
 ; Oblicza funkcję 16^n * S_j dla danego n: %rdi (j), %rsi (n)
 Sj_for_n:
-  push    rdi                  ; zapisuję rdi na stosie
+  push    rsi                  ; zapisuję rdi na stosie
   
   mov     r10, rdi             ; j w r10
   mov     r11, rsi             ; n w r11
@@ -152,37 +152,35 @@ second_loop:
 second_loop_end:
   
   mov     rax, r12
-  pop     rdi                  ; odzyskuję rdi ze stosu
+  pop     rsi                  ; odzyskuję rdi ze stosu
   ret     
   
-; oblicza {16^n * pi}, jeden argument rdi (n)
+; oblicza {16^n * pi}, jeden argument rsi (n)
 pi_for_n:
   xor     rbx, rbx             ; wynik zapisuję w rbx (zeruję)
   
+  ; w rsi jest trzymane n, wiec nie musze go podawać do wywołań Sj_for_n
   mov     rdi, 1               ; 1
-  mov     rsi, rdi             ; N
   call    Sj_for_n             ; S1 = getSjForN(1, N)
   shl     rax, 2               ; 4*S1
   add     rbx, rax             ; ret += 4*S1
   
   mov     rdi, 4               ; 4
-  mov     rsi, rdi,            ; N
   call    Sj_for_n             ; S4 = getSjForN(4, N)
   shl     rax, 1               ; 2*S2
   sub     rbx, rax             ; ret -= 2*S4
   
   mov     rdi, 5               ; 5
-  mov     rsi, rdi             ; N
   call    Sj_for_n             ; S5 = getSjForN(5, N)
   sub     rbx, rax             ; ret -= S5
   
   mov     rdi, 6               ; 6
-  mov     rsi, rdi             ; N
   call    Sj_for_n             ; S6 = getSjForN(6, N)
   sub     rbx, rax             ; ret -= S6
   
   
   mov     rax, rbx             ; res jest w rbx      
+  
   ret                          
   
 
@@ -196,15 +194,15 @@ pix:
   push    r15                  
   push    rbx                  ; zapisuje stan w tych rejestrach, zeby potem z nich korzystać
   
-  ; testy jednostkowe
+; wlasciwa czesc funkcji pix:
   
-  mov     rdi, rdi       
-  ;mov     rsi, rsi
-  ;mov     rcx, rdx
-  call    pi_for_n
   
-  jmp     exit
   
+  
+  
+  
+  
+  jmp     exit  
   
 exit:
   pop     rbx           

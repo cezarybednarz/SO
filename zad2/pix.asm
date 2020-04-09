@@ -75,10 +75,11 @@ loop_power_end:
 
 ; Oblicza funkcję 16^n * S_j dla danego n: %rdi (j), %rsi (n)
 Sj_for_n:
+
   mov     r10, rdi             ; j w r10
   mov     r11, rsi             ; n w r11
-
-  xor     r8, r8               ; w r8 trzymam wynik (na poczatku 0)
+  
+  xor     r12, r12             ; w r12 trzymam wynik (na poczatku 0)
   
   xor     r9, r9               ; indeks w pętli (k)
 ; petla po %r9 (k) od 0 do %rsi (n) sluzy do policzenia pierwszej sumy ze wzorku
@@ -101,35 +102,74 @@ first_loop:
   add     rsi, r10             ; 8*k+j (w rdi)
   
   call    div_fraction         ; rdi / rsi  czyli  (16^(n-k) mod 8*k+j) / (8*k+j)
-
-  add     r8, rax              ; sume zwiekszam o wartosc wywolanej funkcji
+  
+  add     r12, rax             ; sume zwiekszam o wartosc wywolanej funkcji
   
   inc     r9                   ; k++
   cmp     r9, r11              ; k <= n
   jg      first_loop_end       ; wyjdz z petli jesli k > n
   
-  jmp first_loop           
+  jmp     first_loop           
 first_loop_end:
   
-  mov     rax, r8 ; debug
   
-  ret
+  mov     rdi, 1
+  mov     rsi, 16
+  call    div_fraction         ; liczę 1/16
+  mov     r13, rax             ; w r13 zapisuję 1/16
+  
+  mov     r9, r11              ; w r11 jest n
+  inc     r9                   ; w r9 to n+1, r9 bedzie indeksem k w pętli
+second_loop:
+  mov     rax, r13             ; 1/16 w r13 (licznik)
+  
+  mov     r14, r9              
+  shl     r14, 3
+  add     r14, r10             ; w r14 jest 8*k+j
+  
+  div     r14                  ; 
+  
+  mov     r13, rax
+  
+  cmp     rax, 0
+  je      second_loop_end
+  
+  
+  
+second_loop_end:
+  
+  mov     rax, r12
+  ret     
+  
   
 
-; <=======> start funkcji <============>
+; <=======> start funkcji pix <========>
 pix:
-
+  
+  push    r12
+  push    r13
+  push    r14
+  push    r15                  ; zapisuje stan w tych rejestrach, zeby potem z nich korzystać
+  sub     rsp, 8               ; wyrównuję stos do e
+  
+  ; testy jednostkowe
+  
   mov     rdi, rdi       
   mov     rsi, rsi
   ;mov     rcx, rdx
   call    Sj_for_n
   
-  mov     rax, rax 
   jmp     exit
   
   
   
 exit:
+  add     rsp, 8             
+  pop     r15
+  pop     r14
+  pop     r13
+  pop     r12                  ; odzyskuję wartości w rejestrach i wyrównuję stos (ABI)
+  
   ret
 
   

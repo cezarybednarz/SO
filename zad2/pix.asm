@@ -20,6 +20,9 @@ section .text
 
 ; void pix(uint32_t *ppi, uint64_t *pidx, uint64_t max); // troche pozmienialem
 
+; zadanie jest bezpośrednią implementacją wzoru podanego na stronie:
+; https://math.stackexchange.com/questions/880904/how-do-you-use-the-bbp-formula-to-calculate-the-nth-digit-of-%CF%80
+
 ; <=======> funkcje pomocnicze <=======>
 
 ; 64 bity po przecinku ilorazu %rdi / %rsi (2^64 * %rdi / %rsi, biorę czesc calkowitą)
@@ -68,6 +71,49 @@ its_even:
 loop_power_end:
   ret                          ; ret jest juz gotowy w rax
 
+
+
+; Oblicza funkcję 16^n * S_j dla danego n: %rdi (j), %rsi (n)
+Sj_for_n:
+  mov     r10, rdi             ; j w r10
+  mov     r11, rsi             ; n w r11
+
+  xor     r8, r8               ; w r8 trzymam wynik (na poczatku 0)
+  
+  xor     r9, r9               ; indeks w pętli (k)
+; petla po %r9 (k) od 0 do %rsi (n) sluzy do policzenia pierwszej sumy ze wzorku
+first_loop:
+  mov     rdi, 16              ; podstawa (pierwszy argument funkcji power_modulo)
+  
+  mov     rsi, r11             ; n
+  sub     rsi, r9              ; wykladnik n-k (drugi argument funkcji power_modulo)
+  
+  mov     rcx, r9              ; k
+  shl     rcx, 3               ; 8*k
+  add     rcx, r10             ; modulo 8*k+j (trzeci argument funkcji power_modulo)
+  
+  call    power_modulo         ; odpalam funkcje z trzema wyliczonymi argumentami
+  
+  mov     rdi, rax             ; w rdi zapisane 16^(n-k) mod 8*k+j
+  
+  mov     rsi, r9              ; k
+  shl     rsi, 3               ; 8*k
+  add     rsi, r10             ; 8*k+j (w rdi)
+  
+  call    div_fraction         ; rdi / rsi  czyli  (16^(n-k) mod 8*k+j) / (8*k+j)
+
+  add     r8, rax              ; sume zwiekszam o wartosc wywolanej funkcji
+  
+  inc     r9                   ; k++
+  cmp     r9, r11              ; k <= n
+  jg      first_loop_end       ; wyjdz z petli jesli k > n
+  
+  jmp first_loop           
+first_loop_end:
+  
+  mov     rax, r8 ; debug
+  
+  ret
   
 
 ; <=======> start funkcji <============>
@@ -75,8 +121,8 @@ pix:
 
   mov     rdi, rdi       
   mov     rsi, rsi
-  mov     rcx, rdx
-  call    power_modulo
+  ;mov     rcx, rdx
+  call    Sj_for_n
   
   mov     rax, rax 
   jmp     exit

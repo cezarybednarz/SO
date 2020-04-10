@@ -230,12 +230,6 @@ pix:
 ;   shld   rdi, rax, 32          ; rdi = edx:eax
 ;   call   pixtime
 
-
-
-; mov     rsi, 0;debug
-; call    pi_for_n ; debug
-; jmp     exit  ; debug
-
 ; wlasciwa czesc funkcji pix:
 main_loop:
   mov     r11, 1
@@ -244,7 +238,6 @@ main_loop:
   cmp     r11, r10
   jae     main_loop_end
   
-  ;shl     r11, 2
   mov     rsi, r11
   shl     rsi, 3
   call    pi_for_n

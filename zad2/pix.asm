@@ -208,28 +208,34 @@ pi_for_n:
 ; <=======> start funkcji pix <========>
 pix:
   
-  
-  
-  
+    
   push    r12
   push    r13
   push    r14
   push    r15                  
-  push    rbx                  ; zapisuje stan w tych rejestrach, zeby potem z nich korzystać
+  push    rbx 
+  
+  
+                  ; zapisuje stan w tych rejestrach, zeby potem z nich korzystać
     
-  mov     r8, rdi              ; r8  = *ppi
-  mov     r9, rsi              ; r9  = *pidx
-  mov     r10, rdx             ; r10 = max
+  mov     r13, rdi              ; r8  = *ppi
+  mov     r14, rsi              ; r9  = *pidx
+  mov     r15, rdx             ; r10 = max
                                ; r11 = *pidx przed inkrementacją
 
 
-; ; wywolanie pixtime
-;   rdtsc                        ; result stored in edx:eax
-;   mov    rdi, rdx                     
-;   shl    rax, 32               ; move eax content into high 32 bits of rax
-;   shld   rdi, rax, 32          ; rdi = edx:eax
-;   call   pixtime
-
+  ;wywolanie pixtime
+  rdtsc                        ; result stored in edx:eax                 
+  shl    rax, 32               ; move eax content into high 32 bits of rax
+  shld   rdi, rax, 32          ; rdi = edx:eax
+  call   pixtime
+ 
+ 
+  mov     r8, r13              ; r8  = *ppi
+  mov     r9, r14              ; r9  = *pidx
+  mov     r10, r15             ; r10 = max
+                               ; r11 = *pidx przed inkrementacją
+  
 ; wlasciwa czesc funkcji pix:
 main_loop:
   mov     r11, 1
@@ -245,15 +251,7 @@ main_loop:
   mov     dword [r8 + 4*r11], eax
   
   jmp     main_loop
-main_loop_end:
-  
-  
-  
-  
-  
-  
-  jmp     exit  
-  
+
 exit:
   pop     rbx           
   pop     r15
@@ -261,12 +259,11 @@ exit:
   pop     r13
   pop     r12                  ; odzyskuję wartości w rejestrach i wyrównuję stos (ABI)
   
-; ; wywolanie pixtime
-;   rdtsc                        ; result stored in edx:eax
-;   mov    rdi, rdx                     
-;   shl    rax, 32               ; move eax content into high 32 bits of rax
-;   shld   rdi, rax, 32          ; rdi = edx:eax
-;   call   pixtime
+; wywolanie pixtime
+  rdtsc                        ; result stored in edx:eax      
+  shl    rax, 32               ; move eax content into high 32 bits of rax
+  shld   rdi, rax, 32          ; rdi = edx:eax
+  call   pixtime
   
   ret
 

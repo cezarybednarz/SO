@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-uint64_t pix(uint64_t a, uint64_t b, uint64_t c); // to trzeba zmienic na void
+uint64_t pix(uint32_t *ppi, uint64_t *pidx, uint64_t max);
 void pixtime(uint64_t clock_tick);
 
 #endif

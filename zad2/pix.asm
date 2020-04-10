@@ -5,6 +5,8 @@ STDIN     equ 0
 STDOUT    equ 1
 SYS_EXIT  equ 60
 
+extern    pixtime
+
 global pix
 
 section .text
@@ -18,12 +20,12 @@ section .text
 ; mul, div:   RDX:RAX 	r/m64 	RAX 	RDX 	
 
 
-; void pix(uint32_t *ppi, uint64_t *pidx, uint64_t max); // troche pozmienialem
 
 ; zadanie jest bezpośrednią implementacją wzoru podanego na stronie:
 ; https://math.stackexchange.com/questions/880904/how-do-you-use-the-bbp-formula-to-calculate-the-nth-digit-of-%CF%80
 
 ; <=======> funkcje pomocnicze <=======>
+
 
 ; 64 bity po przecinku ilorazu %rdi / %rsi (2^64 * %rdi / %rsi, biorę czesc calkowitą)
 div_fraction:
@@ -157,6 +159,11 @@ second_loop_end:
   
 ; oblicza {16^n * pi}, jeden argument rsi (n)
 pi_for_n:
+  push    r8
+  push    r9
+  push    r10                  
+  push    r11                  ; zachowuję indeksy  
+  
   xor     rbx, rbx             ; wynik zapisuję w rbx (zeruję)
   
   ; w rsi jest trzymane n, wiec nie musze go podawać do wywołań Sj_for_n
@@ -181,21 +188,61 @@ pi_for_n:
   
   mov     rax, rbx             ; res jest w rbx      
   
+  pop     r11
+  pop     r10
+  pop     r9
+  pop     r8                   ; odzyskuję indeksy
+  
   ret                          
   
 
   
+; void pix(uint32_t *ppi, uint64_t *pidx, uint64_t max); // troche pozmienialem
+; rdi (*ppi), rsi(*pidx), rdx(max)  
+  
 ; <=======> start funkcji pix <========>
 pix:
+  
+  
+  
   
   push    r12
   push    r13
   push    r14
   push    r15                  
   push    rbx                  ; zapisuje stan w tych rejestrach, zeby potem z nich korzystać
-  
+    
+  mov     r8, rdi              ; r8  = *ppi
+  mov     r9, rsi              ; r9  = *pidx
+  mov     r10, rdx             ; r10 = max
+                               ; r11 = *pidx przed inkrementacją
+
+
+; ; wywolanie pixtime
+;   rdtsc                        ; result stored in edx:eax
+;   mov    rdi, rdx                     
+;   shl    rax, 32               ; move eax content into high 32 bits of rax
+;   shld   rdi, rax, 32          ; rdi = edx:eax
+;   call   pixtime
+
+
+
+
 ; wlasciwa czesc funkcji pix:
+main_loop:
+  mov     r11, 1
+  lock \
+  xadd    qword [r9], r11
+  cmp     r11, r10
+  jae     main_loop_end
   
+  mov     rsi, r11
+  call    pi_for_n
+  shr     rax, 32
+  mov     dword [r8 + 4*r11], eax
+  
+  jmp     main_loop
+main_loop_end:
   
   
   
@@ -211,7 +258,12 @@ exit:
   pop     r13
   pop     r12                  ; odzyskuję wartości w rejestrach i wyrównuję stos (ABI)
   
-  ret
-
+; ; wywolanie pixtime
+;   rdtsc                        ; result stored in edx:eax
+;   mov    rdi, rdx                     
+;   shl    rax, 32               ; move eax content into high 32 bits of rax
+;   shld   rdi, rax, 32          ; rdi = edx:eax
+;   call   pixtime
   
+  ret
 

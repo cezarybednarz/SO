@@ -39,6 +39,11 @@ div_fraction:
 power_modulo:
   mov     rax, 1               ; wynik potegowania (ret) w rax (na początku 1, bo n^0 == 1)
   
+  cmp     rcx, 1               ; czy m = 1 (jesli tak, to wynik to zawsze bedzie 0)
+  jne     loop_power           ; jesli nie to wykonuj reszte funkcji
+  mov     rax, 0               ; jeśli tak to zwróc 0 (wszystko mod 1 daje w wyniku 0)
+  ret
+  
 loop_power:                   
   cmp     rsi, 0
   je      loop_power_end       ; while(y > 0)
@@ -227,6 +232,9 @@ pix:
 
 
 
+; mov     rsi, 0;debug
+; call    pi_for_n ; debug
+; jmp     exit  ; debug
 
 ; wlasciwa czesc funkcji pix:
 main_loop:
@@ -236,7 +244,9 @@ main_loop:
   cmp     r11, r10
   jae     main_loop_end
   
+  ;shl     r11, 2
   mov     rsi, r11
+  shl     rsi, 3
   call    pi_for_n
   shr     rax, 32
   mov     dword [r8 + 4*r11], eax

@@ -3,7 +3,7 @@
 #include <inttypes.h>
 #include "pix.h"
 
-#define max 1
+#define max 1000
 
 void pixtime(__attribute__((unused)) uint64_t clock_tick) {
   fprintf(stderr, "%016lX\n", clock_tick);

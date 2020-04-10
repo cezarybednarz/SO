@@ -16,10 +16,7 @@ section .text
 ; Unstable registers: rax, rcx, rdx, r8,  r9,  r10, r11
 ; Saved regiters[!]:  rbp, rbx, r12, r13, r14, r15
 
-
 ; mul, div:   RDX:RAX 	r/m64 	RAX 	RDX 	
-
-
 
 ; zadanie jest bezpośrednią implementacją wzoru podanego na stronie:
 ; https://math.stackexchange.com/questions/880904/how-do-you-use-the-bbp-formula-to-calculate-the-nth-digit-of-%CF%80
@@ -162,7 +159,7 @@ second_loop_end:
   pop     rsi                  ; odzyskuję rdi ze stosu
   ret     
   
-; oblicza {16^n * pi}, jeden argument rsi (n)
+; oblicza {16^n * pi}, jeden argument: rsi (n)
 pi_for_n:
   push    r8
   push    r9
@@ -207,26 +204,21 @@ pi_for_n:
   
 ; <=======> start funkcji pix <========>
 pix:
-  
-    
   push    r12
   push    r13
   push    r14
   push    r15                  
   push    rbx 
-  
-  
-                  ; zapisuje stan w tych rejestrach, zeby potem z nich korzystać
+; zapisuje stan w tych rejestrach, zeby potem z nich korzystać
     
-  mov     r13, rdi              ; r8  = *ppi
-  mov     r14, rsi              ; r9  = *pidx
+  mov     r13, rdi             ; r8  = *ppi
+  mov     r14, rsi             ; r9  = *pidx
   mov     r15, rdx             ; r10 = max
                                ; r11 = *pidx przed inkrementacją
-
-
-  ;wywolanie pixtime
-  rdtsc                        ; result stored in edx:eax                 
-  shl    rax, 32               ; move eax content into high 32 bits of rax
+; wywolanie pixtime
+  rdtsc                        ; wynik w edx:eax
+  mov    rdi, rdx                     
+  shl    rax, 32               ; przenieś do górnych bitów rax
   shld   rdi, rax, 32          ; rdi = edx:eax
   call   pixtime
  
@@ -242,7 +234,7 @@ main_loop:
   lock \
   xadd    qword [r9], r11
   cmp     r11, r10
-  jae     main_loop_end
+  jae     exit
   
   mov     rsi, r11
   shl     rsi, 3
@@ -251,7 +243,7 @@ main_loop:
   mov     dword [r8 + 4*r11], eax
   
   jmp     main_loop
-
+  
 exit:
   pop     rbx           
   pop     r15
@@ -260,8 +252,9 @@ exit:
   pop     r12                  ; odzyskuję wartości w rejestrach i wyrównuję stos (ABI)
   
 ; wywolanie pixtime
-  rdtsc                        ; result stored in edx:eax      
-  shl    rax, 32               ; move eax content into high 32 bits of rax
+  rdtsc                        ; wynik w edx:eax
+  mov    rdi, rdx                     
+  shl    rax, 32               ; przenieś do górnych bitów rax
   shld   rdi, rax, 32          ; rdi = edx:eax
   call   pixtime
   
